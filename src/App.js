@@ -1,25 +1,67 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useState, useEffect } from 'react';
+import {
+  withAuthenticator,
+  Text,
+  Flex,
+  View,
+  Badge,
+  Button,
+} from '@aws-amplify/ui-react';
 
-function App() {
+import { API, graphqlOperation } from 'aws-amplify';
+import { createTodo } from './graphql/mutations';
+
+import { listTodos } from './graphql/queries';
+
+const App = ({ user, signOut }) => {
+  const [todos, setTodos] = useState([]);
+
+  const fetchTodo = async () => {
+    const data = await API.graphql(graphqlOperation(listTodos));
+    setTodos(data);
+  };
+
+  useEffect(() => {
+    fetchTodo();
+  }, []);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
+    <div>
+      <Flex direction={'column'} padding={8}>
+        <Text>
+          Logged in as <b>{user.username}</b>
+          <Button variation="link" onClick={signOut}>
+            Sign out
+          </Button>
+        </Text>
+      </Flex>
+      <Button
+        onClick={async () => {
+          await API.graphql(
+            graphqlOperation(createTodo, { input: window.prompt('content') })
+          );
+        }}
+      >
+        Add todo
+      </Button>
+      {todos.map((todo) => (
+        <Flex
+          direction="column"
+          border="1px solid black"
+          padding={8}
+          key={todo.id}
         >
-          Learn React
-        </a>
-      </header>
+          <Text fontWeight={'bold'}>{todo.content}</Text>
+          <View>
+            👨‍👩‍👧‍👦{' '}
+            {todo.owners.map((owner) => (
+              <Badge margin={4}>{owner}</Badge>
+            ))}
+          </View>
+        </Flex>
+      ))}
     </div>
   );
-}
+};
 
-export default App;
+export default withAuthenticator(App);
